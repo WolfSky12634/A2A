@@ -1,0 +1,27 @@
+.Playing-card {
+  width: 120px;
+  height: 160px;
+  background-color: red;
+  border-radius: 15px;
+  display: flex;
+  justify-content: center;  /* Align horizontally */
+  align-items: center;      /* Align vertically */
+  border: 3px solid rgb(50, 50, 50);  /* Optional: Add border for visibility */
+  box-sizing: border-box;   /* Ensure padding is included in width/height */
+  text-align: center;       /* Ensure text is centered horizontally */
+  transition: transform 0.3s ease;  /* Smooth hover animation */
+}
+
+.Playing-card:hover {
+  transform: translateY(-20px); /* Moves up by 10px on hover */
+}
+
+.Text {
+  font-size: 16px;
+  user-select: none;
+  color: black;
+  display: block;          /* Make the text a block element to take full width */
+  width: 100%;             /* Allow the text to take up the full width of the container */
+  word-wrap: break-word;   /* Break long words if necessary */
+  text-align: center;      /* Optional: Center text inside the block */
+}
