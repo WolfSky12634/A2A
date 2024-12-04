@@ -11,6 +11,16 @@
   font-size: calc(10px + 2vmin);
 }
 
+.Text {
+  font-size: 16px;
+  user-select: none;
+  color: black;
+  display: block;          /* Make the text a block element to take full width */
+  width: 100%;             /* Allow the text to take up the full width of the container */
+  word-wrap: break-word;   /* Break long words if necessary */
+  text-align: center;      /* Optional: Center text inside the block */
+}
+
 /* Prevent scrolling */
 html, body {
   width: 100%;

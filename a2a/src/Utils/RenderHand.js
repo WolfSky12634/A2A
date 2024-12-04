@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CardRenderer from './CardRenderer.js';
-import App from './App.js';
+import cards from '../Cards/cards.json'
 
 // Utility function to calculate the point on an oval for a given x (assuming y = sqrt(1 - (x/a)^2) * b)
 function calculateOvalPoint(x, rx, ry) {
@@ -15,7 +15,6 @@ const DisplayHand = () => {
 
   const [cardAmount, setCardAmount] = useState(7); // Number of cards
   const [radiusWidth, setRadiusWidth] = useState(Math.min(Math.max(cardAmount * window.innerWidth/12, minRadius), maxRadius)); // Store window height
-  const [radiusHeight, setRadiusHeight] = useState(window.innerHeight/3); // Store window height
   const [dampingFactor, setDampingFactor] = useState (200/ (Math.min(Math.max(cardAmount * window.innerWidth/12, minRadius), maxRadius)));
 
   const [points, setPoints] = useState([]); // State to store the points and angles for the oval path
@@ -25,7 +24,6 @@ const DisplayHand = () => {
     const handleResize = () => {
       const windowInnerWidth = window.innerWidth;
       setRadiusWidth(Math.min(Math.max(cardAmount * windowInnerWidth/12, minRadius), maxRadius));
-      setRadiusHeight(window.innerHeight / 3);
       setDampingFactor(200/ (Math.min(Math.max(cardAmount * windowInnerWidth/12, minRadius), maxRadius)))
     };
 
@@ -56,14 +54,19 @@ const DisplayHand = () => {
 
   return (
     <div
+      className='Hand'
       style={{
         position: 'fixed',
         bottom: '0px'
       }}>
       {/* Render CardRenderer components at each calculated position */}
-      {points.map((point, index) => (
+      {points.map((point, index) => {
+        const card = cards[Math.floor(Math.random() * cards.length)];
+
+        return (
         <div
-          key={`card-${index}-${point.angleDeg}`}
+          className='HandCard'
+          key={`handCard-${index}-${point.angleDeg}`}
           style={{
             position: 'fixed',
             display: 'flex',/* Enables Flexbox */
@@ -74,9 +77,9 @@ const DisplayHand = () => {
             //transformOrigin: 'bottom center', // Pivot rotation from the top edge
           }}
         >
-          <CardRenderer Colour="white" Text={`Card ${index + 1}`} />
+        <CardRenderer Colour="white" Text={card.type === "text"? card.value:""} HoverEffect={true} />
         </div>
-      ))}
+      )})}
     </div>
   );
 };
