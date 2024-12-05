@@ -1,15 +1,26 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import RenderHand from './Utils/RenderHand.js';
-import {initialCommunications} from './Utils/ServerCommunications.js';
+import Menus from './Utils/Menus.js';
 //import '' from './DataStorage.js'
 
 function App() {
-  initialCommunications(1234);
+  const [currentScreen, changeCurrentScreen] = useState('MainMenu');
+
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'MainMenu':
+        return <Menus.MainMenu changeCurrentScreen={changeCurrentScreen}/>;
+      case 'PlayingHand':
+        return <RenderHand changeCurrentScreen={changeCurrentScreen}/>;
+      case 'WaitingRoom':
+        return <Menus.WaitMenu changeCurrentScreen={changeCurrentScreen}/>;
+    }
+  }
 
   return (
     <div className="App">
-      <RenderHand/>
+      {renderScreen()}
     </div>
   );
 }

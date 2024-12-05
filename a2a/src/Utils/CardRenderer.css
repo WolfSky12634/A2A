@@ -31,3 +31,11 @@
   word-wrap: break-word;   /* Break long words if necessary */
   text-align: center;      /* Optional: Center text inside the block */
 }
+
+.Image {
+  width: 100%;             /* Make the image fill the width of the card */
+  height: auto;            /* Maintain aspect ratio */
+  object-fit: contain;     /* Ensure the entire image is visible within the card */
+  border-radius: 15px;     /* Optional: Match the card's border radius */
+  display: block;          /* Remove any extra space below the image */
+}

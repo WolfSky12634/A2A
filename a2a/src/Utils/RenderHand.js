@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CardRenderer from './CardRenderer.js';
-import cards from '../Cards/cards.json'
+import defaultPack from '../Cards/cards.json'
 
 import { getCurrentPlayerHand } from './ServerCommunications.js';
 
@@ -11,7 +11,7 @@ function calculateOvalPoint(x, rx, ry) {
   return { x, y, angleDeg };
 }
 
-const RenderHand = () => {
+function RenderHand({changeCurrentScreen}) {
   const [currentHand, setCurrentHand] = useState(new Array(7).fill(null));
   
   useEffect(() => {
@@ -26,14 +26,15 @@ const RenderHand = () => {
   const maxRadius = 350;  // Maximum value for radiusWidth
   const cardAmount = currentHand.filter(card => card !== null).length;
 
-  const [radiusWidth, setRadiusWidth] = useState(Math.min(Math.max(cardAmount * window.innerWidth/12, minRadius), maxRadius)); // Store window height
-  const [dampingFactor, setDampingFactor] = useState (200/ (Math.min(Math.max(cardAmount * window.innerWidth/12, minRadius), maxRadius)));
-
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [radiusWidth, setRadiusWidth] = useState(Math.min(Math.max(cardAmount * windowWidth/12, minRadius), maxRadius)); // Store window height
+  const [dampingFactor, setDampingFactor] = useState (200/ (Math.min(Math.max(cardAmount * windowWidth/12, minRadius), maxRadius)));
   const [points, setPoints] = useState([]); // State to store the points and angles for the oval path
 
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
+      setWindowWidth(window.innerWidth);
       const windowInnerWidth = window.innerWidth;
       setRadiusWidth(Math.min(Math.max(cardAmount * windowInnerWidth/12, minRadius), maxRadius));
       setDampingFactor(200/ (Math.min(Math.max(cardAmount * windowInnerWidth/12, minRadius), maxRadius)))
@@ -62,7 +63,7 @@ const RenderHand = () => {
 
     // Update points state
     setPoints(newPoints);
-  }, [cardAmount]); // Recalculate when cardAmount, windowWidth, or windowHeight changes
+  }, [cardAmount, windowWidth]); // Recalculate when cardAmount, windowWidth, or windowHeight changes
 
   return (
     <div
@@ -75,7 +76,7 @@ const RenderHand = () => {
       {points.map((point, index) => {
         const cardsIndex = currentHand[index];
         if(cardsIndex === null) { return null; }
-        const card = cards[cardsIndex];
+        const card = defaultPack.whiteCards[cardsIndex];
         return (
         <div
           className='HandCard'
@@ -90,7 +91,7 @@ const RenderHand = () => {
             //transformOrigin: 'bottom center', // Pivot rotation from the top edge
           }}
         >
-        <CardRenderer Colour="white" Text={card.type === "text"? card.value:""} HoverEffect={true} />
+        <CardRenderer Colour="white" Text={card.type === "text"? card.value:null} HoverEffect={true} ImagePath = {card.type === "image"? card.value:null} />
         </div>
       )})}
     </div>

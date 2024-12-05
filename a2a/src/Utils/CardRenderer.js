@@ -1,12 +1,13 @@
 import './CardRenderer.css';
 
-function CardRenderer({ Colour, Text, Scale, HoverEffect=true}) {
+function CardRenderer({ Colour, Text, Scale, HoverEffect=true, ImagePath}) {
     return (
         <div 
             className={`Playing-card${+ HoverEffect? `` : `.No-hover`}`}
             style={{ backgroundColor: Colour, transform: `scale(${Scale})` }}
         >
-            <span className="Text">{Text}</span>
+            {ImagePath && <img src={"/CardImages/"+ImagePath} alt="Card Image" className="Image"></img>}
+            {!ImagePath && <span className="Text">{Text}</span>}
         </div>
     );
 }

@@ -1,0 +1,84 @@
+.menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    min-width: calc(379px); /* Ensures it has some extra width */
+    background: linear-gradient(135deg, #1a1a1a, #333333);
+    font-family: 'Arial', sans-serif;
+  }
+  
+  /* Button styling */
+  .menu-button {
+    background: linear-gradient(135deg, #ffffff, #e0e0e0);
+    color: #1a1a1a;
+    border: 2px solid #000;
+    border-radius: 12px;
+    padding: 15px 30px;
+    margin: 15px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  }
+  
+  .menu-button:hover {
+    background: linear-gradient(135deg, #e0e0e0, #ffffff);
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+  }
+  
+  .menu-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Button text shadow for a stylish effect */
+  .menu-button {
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+  }
+
+  .input-field {
+    width: 300px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 2px solid #333;
+    font-size: 1rem;
+    margin: 10px 0;
+    transition: border-color 0.3s ease;
+}
+
+.input-field:focus {
+    border-color: #1a1a1a;
+    outline: none;
+}
+
+.error-text {
+    color: #d9534f; /* Red colour for the error message */
+    background-color: #f2dede; /* Light red background */
+    border: 1px solid #d43f00; /* Darker red border */
+    border-radius: 5px; /* Rounded corners */
+    padding: 10px 15px; /* Spacing around the text */
+    font-size: 1rem; /* Set font size */
+    font-weight: bold; /* Make the text bold */
+    text-align: center; /* Center the text */
+    margin: 10px 0; /* Add some space above and below */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional shadow */
+}
+  
+  /* Optional animation for hover effect */
+  @keyframes button-hover {
+    0% {
+      transform: translateY(-4px);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+    100% {
+      transform: translateY(-4px);
+    }
+  }

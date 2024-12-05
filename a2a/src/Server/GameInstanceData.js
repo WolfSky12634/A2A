@@ -1,6 +1,4 @@
-import cards from '../Cards/cards.json' with { type: 'json' };
-
-//const cards = [];
+import defaultPack from '../Cards/cards.json' with { type: 'json' };
 
 class Player{
     #playerUUID; getPlayerUUID(){ return this.#playerUUID; }
@@ -38,8 +36,9 @@ class Player{
 export class GameInstance{
     #instanceCode; getInstanceCode(){ return this.#instanceCode; }
     #players = new Map();
-    #deck = null
-    deckType = 'default';
+    #whiteDeck = null
+    #blackDeck = null
+    pack = defaultPack;
 
     constructor(instanceCode){
         this.instanceCode = instanceCode
@@ -54,6 +53,7 @@ export class GameInstance{
         if(this.#doesPlayerExistInGame(UUID)) { return; }
         this.#players.set(UUID, new Player(UUID));
         
+        this.startGame();
     }
 
     removePlayer(UUID) {
@@ -66,26 +66,28 @@ export class GameInstance{
         return this.#players.get(UUID).getHand();
     }
 
-    startGame(deck = 'default'){
+    startGame(pack = defaultPack){
         this.#players.forEach((player) => { player.emptyHand(); });
 
-        this.deckType = deck;
-        this.initialiseDeck(cards);
-        this.dealCards(2);
+        this.pack = pack;
+        this.initialiseDecks();
+        this.dealCards(7);
     }
 
-    initialiseDeck(deck){
-        this.#deck = Array.from({ length:deck.length}, (_, i) => i)
-        this.shuffleDeck();
+    initialiseDecks(){
+        this.#whiteDeck = Array.from({ length:this.pack.whiteCards.length}, (_, i) => i)
+        this.#blackDeck = Array.from({ length:this.pack.blackCards.length}, (_, i) => i)
+        this.shuffleDeck(this.#whiteDeck);
+        this.shuffleDeck(this.#blackDeck);
     }
 
     //Shuffle using the Fisher-Yates algorithm
-    shuffleDeck(){
-        if(this.#deck === null) { console.log("You must initialise the deck before shuffling it"); return;}
+    shuffleDeck(deck){
+        if(deck === null) { console.log("You must initialise the deck before shuffling it"); return;}
 
-        for (let i = this.#deck.length - 1; i > 0; i--) {
+        for (let i = deck.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [this.#deck[i], this.#deck[j]] = [this.#deck[j], this.#deck[i]]; // Swap elements
+            [deck[i], deck[j]] = [deck[j], deck[i]]; // Swap elements
         }
     }
 
@@ -94,9 +96,9 @@ export class GameInstance{
             this.#players.forEach((player) => {
                 const hand = player.getHand();
                 if (!hand.includes(null)) { return; }
-                if (this.#deck.length <= 0) { /*NEW DECK LOADING*/ }
-                player.addCard(this.#deck.pop());
-                console.log(this.#deck);
+                if (this.#whiteDeck.length <= 0) { /*NEW DECK LOADING*/ }
+                player.addCard(this.#whiteDeck.pop());
+                console.log(this.#whiteDeck);
             });
         }
     }

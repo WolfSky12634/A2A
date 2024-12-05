@@ -1,6 +1,26 @@
-[
+{
+    "whiteCards": [
     { "type": "text", "value": "Madelilne Mccann"},
     { "type": "text", "value": "The Plague"},
+    { "type": "text", "value": "My inner demons"},
+    { "type": "text", "value": "Respecting women"},
+    { "type": "text", "value": "Getting swole"},
+    { "type": "text", "value": "Your Mum"},
+    { "type": "text", "value": "Wizard music"},
+    { "type": "text", "value": "Cashews"},
+    { "type": "text", "value": "Aging terribly"},
+    { "type": "text", "value": "Canada's worst mangos"},
+    { "type": "text", "value": "I am a goat"},
+    { "type": "text", "value": "Therapy"},
+    { "type": "text", "value": "Bad music for stupid people"},
+    { "type": "text", "value": "Josh"},
+    { "type": "text", "value": "Sniffing my feet"},
+    { "type": "text", "value": "This kid I found"},
     { "type": "image", "value":"spongebobPaper.jpg" },
     { "type": "image", "value":"fineBurningRoom.jpg" }
-]
+    ],
+    
+    "blackCards": [
+        {"type": "text", "value": "What is worse than the heat death of the universe?"}
+    ]
+}
