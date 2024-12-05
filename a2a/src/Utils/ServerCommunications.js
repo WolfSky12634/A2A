@@ -1,8 +1,16 @@
 import { v4 as uuidv4 } from 'uuid';
 
-const apiAddress = 'http://192.168.1.133:3001';
+export const ipaddress = 'http://192.168.1.133'
 
-function getCookieValue(cookieString, cookieName) {
+const apiAddress = ipaddress+':3001';
+let currentInstance = 1234;
+
+const apiRequests = {
+    join : '/joinGame',
+    getcurrentplayerhand : '/getPlayerHand'
+}
+
+export function getCookieValue(cookieString, cookieName) {
     // Split the cookie string into individual cookies and create an object
     const cookies = cookieString.split(';').reduce((acc, cookie) => {
         const [key, value] = cookie.split('=').map(part => part && part.trim()); // Trim spaces from keys and values
@@ -30,18 +38,37 @@ function getOrCreateCookieUUID() {
     return deviceUUID;//
 }
 
-function joinGame() {
-    fetch(apiAddress+'/joinGame', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceCookies: document.cookie }) // Replace with the actual payload
-    });
+async function defaultApiRequest(apiCall){
+    const apiRequest = apiRequests[apiCall.toLowerCase()]
+    if(!apiRequest){ console.log(`No API request of ${apiCall} exists`); return;}
+
+    try {
+        const response = await fetch(apiAddress+apiRequest, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instanceCode: currentInstance, deviceCookies: document.cookie })
+        });
+        return response;
+    }
+    catch (error)
+    { console.error(`Fetch error for ${apiRequest}: `, error)}
+
+    return null;
 }
 
-function initialCommunications() {
+export function initialCommunications(instanceCode) {
     getOrCreateCookieUUID();
-    joinGame();
+    joinGame(instanceCode);
 }
 
+function joinGame(instanceCode) {console.log("Joining" + currentInstance); currentInstance = instanceCode; defaultApiRequest("Join"); }
 
-export {getCookieValue, initialCommunications};
+export async function getCurrentPlayerHand(){
+    const response = await defaultApiRequest("getCurrentPlayerHand")
+    if (!response.ok) 
+    { throw new Error(`HTTP error - Status: ${response.status}`); }
+    
+    const data = await response.json();
+    console.log(data);
+    return data;
+}

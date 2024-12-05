@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import CardRenderer from './CardRenderer.js';
 import cards from '../Cards/cards.json'
 
+import { getCurrentPlayerHand } from './ServerCommunications.js';
+
 // Utility function to calculate the point on an oval for a given x (assuming y = sqrt(1 - (x/a)^2) * b)
 function calculateOvalPoint(x, rx, ry) {
   const y = ry * Math.sqrt(1 - Math.pow(x / rx, 2)); // Calculate y using ellipse equation
@@ -9,11 +11,21 @@ function calculateOvalPoint(x, rx, ry) {
   return { x, y, angleDeg };
 }
 
-const DisplayHand = () => {
+const RenderHand = () => {
+  const [currentHand, setCurrentHand] = useState(new Array(7).fill(null));
+  
+  useEffect(() => {
+    async function fetchHand() {
+      const hand = await getCurrentPlayerHand();
+      setCurrentHand(hand);
+    }
+    fetchHand();
+  }, []); // Fetch the hand when the component mounts
+  
   const minRadius = 200;  // Minimum value for radiusWidth
   const maxRadius = 350;  // Maximum value for radiusWidth
+  const cardAmount = currentHand.filter(card => card !== null).length;
 
-  const [cardAmount, setCardAmount] = useState(7); // Number of cards
   const [radiusWidth, setRadiusWidth] = useState(Math.min(Math.max(cardAmount * window.innerWidth/12, minRadius), maxRadius)); // Store window height
   const [dampingFactor, setDampingFactor] = useState (200/ (Math.min(Math.max(cardAmount * window.innerWidth/12, minRadius), maxRadius)));
 
@@ -61,8 +73,9 @@ const DisplayHand = () => {
       }}>
       {/* Render CardRenderer components at each calculated position */}
       {points.map((point, index) => {
-        const card = cards[Math.floor(Math.random() * cards.length)];
-
+        const cardsIndex = currentHand[index];
+        if(cardsIndex === null) { return null; }
+        const card = cards[cardsIndex];
         return (
         <div
           className='HandCard'
@@ -84,4 +97,4 @@ const DisplayHand = () => {
   );
 };
 
-export default DisplayHand;
+export default RenderHand;
