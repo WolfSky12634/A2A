@@ -69,16 +69,16 @@
     margin: 10px 0; /* Add some space above and below */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional shadow */
 }
-  
-  /* Optional animation for hover effect */
-  @keyframes button-hover {
-    0% {
-      transform: translateY(-4px);
-    }
-    50% {
-      transform: translateY(-2px);
-    }
-    100% {
-      transform: translateY(-4px);
-    }
+
+/* Optional animation for hover effect */
+@keyframes button-hover {
+  0% {
+    transform: translateY(-4px);
   }
+  50% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(-4px);
+  }
+}

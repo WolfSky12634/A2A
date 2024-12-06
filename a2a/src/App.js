@@ -5,7 +5,7 @@ import Menus from './Utils/Menus.js';
 //import '' from './DataStorage.js'
 
 function App() {
-  const [currentScreen, changeCurrentScreen] = useState('MainMenu');
+  const [currentScreen, changeCurrentScreen] = useState('WaitingRoom');
 
   const renderScreen = () => {
     switch (currentScreen) {
