@@ -1,0 +1,23 @@
+/*#Region - Spinner*/
+
+.trail-path {
+  fill: none;
+  stroke: red;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.moving-dot {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+      r: 5;
+  }
+  50% {
+      r: 5.5;
+  }
+}
+
+/*#End Region - Spinner*/

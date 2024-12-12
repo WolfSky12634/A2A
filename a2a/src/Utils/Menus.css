@@ -4,7 +4,7 @@
     align-items: center;
     justify-content: center;
     height: 100vh;
-    min-width: calc(379px); /* Ensures it has some extra width */
+    min-width: calc(395px); /* Ensures it has some extra width */
     background: linear-gradient(135deg, #1a1a1a, #333333);
     font-family: 'Arial', sans-serif;
   }
@@ -81,4 +81,20 @@
   100% {
     transform: translateY(-4px);
   }
+}
+
+
+.wait-text {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: green;
+  text-shadow: 
+        1px 1px 0 black,
+        -1px 1px 0 black,
+        1px -1px 0 black,
+        -1px -1px 0 black;
 }

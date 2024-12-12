@@ -1,21 +1,21 @@
-import defaultPack from '../Cards/cards.json' with { type: 'json' };
+//Game Instance and Player data classes
+import defaultPack from '../Cards/DefaultCardPack.json' with { type: 'json' };
 
+//Player class which stores data relating to the player including cards, UUID and player username
 class Player{
     #playerUUID; getPlayerUUID(){ return this.#playerUUID; }
+    #playerName; getPlayerName() { return this.#playerName;}
     #hand = new Array(7).fill(null); getHand(){ return this.#hand; }
 
-    constructor(playerUUID){ 
-        this.playerUUID = playerUUID; 
+    constructor(playerUUID, playerName){ 
+        this.#playerUUID = playerUUID; 
+        this.#playerName = playerName; 
     }
 
     addCard(cardJsonIndex){
         const nullIndex = this.#hand.indexOf(null);
-        if(nullIndex !== -1){
-            this.#hand[nullIndex] = cardJsonIndex;
-        }
-        else{
-            console.error("Cannot add new card as the list is already full")
-        }
+        if(nullIndex !== -1) { this.#hand[nullIndex] = cardJsonIndex; }
+        else { console.error("Cannot add new card as the list is already full") }
     }
 
     removeCard(cardJsonIndex) {
@@ -52,8 +52,6 @@ export class GameInstance{
     addPlayer(UUID){
         if(this.#doesPlayerExistInGame(UUID)) { return; }
         this.#players.set(UUID, new Player(UUID));
-        
-        this.startGame();
     }
 
     removePlayer(UUID) {
@@ -98,12 +96,12 @@ export class GameInstance{
                 if (!hand.includes(null)) { return; }
                 if (this.#whiteDeck.length <= 0) { /*NEW DECK LOADING*/ }
                 player.addCard(this.#whiteDeck.pop());
-                console.log(this.#whiteDeck);
             });
         }
     }
 
     playerDrawCard(UUID){
         if(!this.#doesPlayerExistInGame(UUID)) { return; }
+        this.#players[UUID].addCard();
     }
 }

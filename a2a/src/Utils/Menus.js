@@ -1,160 +1,46 @@
-import { useEffect, useState, useRef } from 'react';
+//Controls the menu screens
+import { useState } from 'react';
 import './Menus.css'
 import {initialCommunications} from './ServerCommunications.js';
-import './spinner.css';
+import { Spinners } from './VisualEffects.js';
 
+//Renders the Main Menu visuals
 function MainMenu({changeCurrentScreen}) {
-    const [gameCode, setGameCode] = useState('');
+    const [instanceCode, setInstanceCode] = useState('');
     const [errorEnter, setErrorEnter] = useState(false)
-    
-    const handleInputChange = (event) => {
-        setGameCode(event.target.value);
-    };
+    const [errorConnect, setErrorConnect] = useState(false)
 
-    const beginGame = () => {
-        if(!gameCode || gameCode.length < 4){ setErrorEnter(true); return; }
-        initialCommunications(gameCode);
+
+    //Joins the game if the Game Instance Code is valid, or creates a new game if it is valid, and the instance code is not being used currently
+    const joinGame = () => {
+        console.log()
+        if(instanceCode.length < 4 || !Number.isInteger(Number(instanceCode))){ setErrorConnect(false); setErrorEnter(true); return; }
+        if(!initialCommunications(instanceCode)) { setErrorEnter(false); setErrorConnect(instanceCode); return; }
         changeCurrentScreen("WaitingRoom");
     };
-
+    
+    //Changes the text in the input text box
+    const handleInputChange = (event) => { setInstanceCode(event.target.value); };
 
     return(
         <div className="menu">
-            <button className="menu-button" onClick={beginGame}>Play</button>
-            <input type="text" value={gameCode} onChange={handleInputChange} placeholder="Enter Game Code:" className="input-field"/>
-            {errorEnter && <span className='error-text'>The GameCode must be longer than 4 digits</span>}
+            <button className="menu-button" onClick={joinGame}>Play</button>
+            <input type="text" value={instanceCode} onChange={handleInputChange} placeholder="Enter Game Code:" className="input-field"/>
+            {(errorEnter || errorConnect) && <span className='error-text'>{errorEnter?"GameCode must be at least 4 numerical digits":`Unable to connect to ${errorConnect}`}</span>}
         </div>
     )
 
 }
 
+//Renders the Waiting Menu visuals
 function WaitMenu({ changeCurrentScreen }) {
     return(
-        <div>
-            <span>Waiting for more Players...</span>
+        <div style={{ position: "relative", margin: "auto" }}>
+            <span style={{position: "absolute", top: "50%", transform: "translate(-50%, -50%)", textAlign: "center", fontSize: "16px", 
+            fontWeight: "bold", color: "green", textShadow: "1px 1px 0 black, -1px 1px 0 black, 1px -1px 0 black, -1px -1px 0 black"}}>
+                Waiting for more Players...
+            </span>
             <Spinners/>
-        </div>
-    );
-}
-
-function Spinners(){
-    const pathRef = useRef(null);
-    const [trailPoints, setTrailPoints] = useState([]);
-    const [reverseTrailPoints, setReverseTrailPoints] = useState([]);
-
-    useEffect(() => {
-        const radius = 80; // Radius of the circle
-        const centerX = 100; // X coordinate of circle's centre
-        const centerY = 100; // Y coordinate of circle's centre
-        let angle = 90; // Start at the top of the circle
-    
-        const interval = setInterval(() => {
-            const radian = (angle * Math.PI) / 180;
-            const x = centerX + radius * Math.cos(radian);
-            const y = centerY + radius * Math.sin(radian);
-    
-            setTrailPoints((prevPoints) => {
-                const updatedPoints = [...prevPoints, `${x},${y}`];
-                return updatedPoints.length > 40 ? updatedPoints.slice(1) : updatedPoints;
-            });
-    
-            angle = (angle + 2) % 360;
-        }, 50);
-    
-        return () => clearInterval(interval);
-    }, []);
-    
-    useEffect(() => {
-        const radius = 80; // Radius of the circle
-        const centerX = 100; // X coordinate of circle's centre
-        const centerY = 100; // Y coordinate of circle's centre
-        let angle = 90; // Start at the top of the circle (reverse direction)
-    
-        const interval = setInterval(() => {
-            const radian = (angle * Math.PI) / 180;
-            const x = centerX + radius * Math.cos(radian);
-            const y = centerY + radius * Math.sin(radian);
-    
-            setReverseTrailPoints((prevPoints) => {
-                const updatedPoints = [...prevPoints, `${x},${y}`];
-                return updatedPoints.length > 40 ? updatedPoints.slice(1) : updatedPoints;
-            });
-    
-            angle = (angle - 2 + 360) % 360;
-        }, 50);
-    
-        return () => clearInterval(interval);
-    }, []);
-
-    return (
-        <div className="menu">
-            <svg width="200" height="200" viewBox="0 0 200 200">
-                {/* Render the forward-moving trail */}
-                {trailPoints.map((point, index) => {
-                    if (index === 0) return null; // Skip the first point, as it doesn't form a segment
-                    const circleRadius = 5;
-                    const start = trailPoints[index - 1];
-                    const end = point;
-
-                    const strokeWidth = (circleRadius * 4) / (Math.log(trailPoints.length - index + 1) + 1);
-                    const opacity = 1 - (trailPoints.length - index) / trailPoints.length;
-                    return (
-                        <line
-                            key={`forward-${index}`}
-                            x1={start.split(',')[0]}
-                            y1={start.split(',')[1]}
-                            x2={end.split(',')[0]}
-                            y2={end.split(',')[1]}
-                            stroke="blue"
-                            strokeWidth={strokeWidth}
-                            opacity={opacity}
-                        />
-                    );
-                })}
-
-                {/* Render the reverse-moving trail */}
-                {reverseTrailPoints.map((point, index) => {
-                    if (index === 0) return null; // Skip the first point, as it doesn't form a segment
-                    const circleRadius = 5;
-                    const start = reverseTrailPoints[index - 1];
-                    const end = point;
-
-                    const strokeWidth = (circleRadius * 4) / (Math.log(reverseTrailPoints.length - index + 1) + 1);
-                    const opacity = 1 - (reverseTrailPoints.length - index) / reverseTrailPoints.length;
-                    return (
-                        <line
-                            key={`reverse-${index}`}
-                            x1={start.split(',')[0]}
-                            y1={start.split(',')[1]}
-                            x2={end.split(',')[0]}
-                            y2={end.split(',')[1]}
-                            stroke="green" // Change colour for visual distinction
-                            strokeWidth={strokeWidth}
-                            opacity={opacity}
-                        />
-                    );
-                })}
-
-                {/* Moving dot for forward direction */}
-                <circle
-                    className="moving-dot"
-                    cx={trailPoints[trailPoints.length - 1]?.split(',')[0] || 100}
-                    cy={trailPoints[trailPoints.length - 1]?.split(',')[1] || 20}
-                    r="5"
-                    fill="none"
-                    stroke="red"
-                />
-
-                {/* Moving dot for reverse direction */}
-                <circle
-                    className="moving-dot"
-                    cx={reverseTrailPoints[reverseTrailPoints.length - 1]?.split(',')[0] || 100}
-                    cy={reverseTrailPoints[reverseTrailPoints.length - 1]?.split(',')[1] || 20}
-                    r="5"
-                    fill="none"
-                    stroke="orange" // Change colour for visual distinction
-                />
-            </svg>
         </div>
     );
 }

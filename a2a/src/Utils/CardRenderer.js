@@ -1,3 +1,4 @@
+//Renders a single card
 import './CardRenderer.css';
 
 function CardRenderer({ Colour, Text, Scale, HoverEffect=true, ImagePath}) {
