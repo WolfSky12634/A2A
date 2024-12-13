@@ -3,8 +3,6 @@ import React, { useState, useEffect } from 'react';
 import CardRenderer from './CardRenderer.js';
 import defaultPack from '../Cards/DefaultCardPack.json'
 
-import { getCurrentPlayerHand } from './ServerCommunications.js';
-
 //Utility function to calculate the point on an oval for a given x (assuming y = sqrt(1 - (x/a)^2) * b)
 function calculateOvalPoint(x, rx, ry) {
   const y = ry * Math.sqrt(1 - Math.pow(x / rx, 2)); //Calculate y using ellipse equation
@@ -13,14 +11,13 @@ function calculateOvalPoint(x, rx, ry) {
 }
 
 //Renders the cards in an oval shaped format
-function RenderHand({changeCurrentScreen}) {
+function RenderHand({changeCurrentScreen, serverCommunications}) {
   const [currentHand, setCurrentHand] = useState(new Array(7).fill(null));
   
   //Gets the current player's cards when the component mounts
   useEffect(() => {
     async function fetchHand() {
-      const hand = await getCurrentPlayerHand();
-      setCurrentHand(hand);
+      serverCommunications.getCurrentPlayerHand(setCurrentHand);
     }
     fetchHand();
   }, []);

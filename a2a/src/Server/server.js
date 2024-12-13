@@ -1,84 +1,141 @@
 //The communication server code
-import express from 'express';
-import cors from 'cors';
+import WebSocket from 'ws';
+import cookie from 'cookie';
 import {GameInstance} from './GameInstanceData.js';
-import { ipaddress } from '../Utils/ServerCommunications.js';
-
-//Initialises communications
-const frontendAddress = ipaddress+':3000'; //Temporary appointment of communication address
-const exp = express();
-exp.use(cors({
-  origin: frontendAddress,
-  credentials: true
-}));
-exp.use(express.text()); exp.use(express.json());
-exp.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', frontendAddress);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    next();
-  });
 
 //Creates a new map of all the current gameinstances from the currentGameInstances Map
 let currentGameInstances = new Map();
+let userSocketConnections = new Map();
 
-//Creates new Game Instances
-function createGameInstance(instanceCode){
-  let game = currentGameInstances.get(instanceCode);
-  if(!game) { game = new GameInstance(instanceCode); currentGameInstances.set(instanceCode, game);}
+
+//Creates a new Game Instance
+function createGameInstance(gameInstanceID){
+  if(currentGameInstances.get(gameInstanceID)) { return null; }
+  const game = new GameInstance(gameInstanceID);
+  currentGameInstances.set(gameInstanceID,game);
   return game;
 }
 
-//Removes existing Gmae Instances from the currentGameInstances Map
-function removeGameInstance(instanceCode){
-  if(!currentGameInstances.has(instanceCode)) { console.log(`Game instance ${instanceCode} does not exist`); return; }
-  currentGameInstances.delete(instanceCode);
+//Removes existing Game Instances from the currentGameInstances Map
+function removeGameInstance(gameInstanceID){
+  if(!currentGameInstances.has(gameInstanceID)) { console.log(`Game instance ${gameInstanceID} does not exist`); return; }
+  currentGameInstances.delete(gameInstanceID);
 }
 
-//Creates a default data communication response standard so that the server knows which user is communicating with it
-function defaultAPIResponder(req,res){
-  let errors = [];
+const server = new WebSocket.Server({ host: '0.0.0.0', port: 3001 });
 
-  //Gets the game instance code
-  const instanceCode = req.body.instanceCode;
-  if(!instanceCode) { errors.push("Missing Game Instance Code");}
+server.on('connection', (socket, req) => {
+  //Initial device connection
+  const deviceUUID = cookie.parse(req.headers.cookie || '').deviceUUID;
+  let instanceCode;
+
+  if(!deviceUUID){
+    socket.emit('error', {errors:["Missing UUID"]});
+    socket.close();
+    return; 
+  }
+
+  userSocketConnections.set(deviceUUID,socket);
+
+  const instanceID = cookie.parse(req.headers.cookie || '').instanceCode;
+  if(instanceID) { joinGame(instanceID); }  
+
+
+
+  const functionHandlers = {
+    joingame: (instanceID) => joinGame(instanceID),
+    getcurrentplayerhand: () => getCurrentPlayerHand(),
+    hostgame: (instanceID) => hostGame(instanceID)
+  }
+
+  socket.on('message', (message) => {
+
+    const parsedMessage = JSON.parse(message);
+    switch(parsedMessage.type){
+      case "function":
+        const parsedFunction = JSON.parse(parsedMessage.content);
+        const func = functionHandlers[parsedFunction.function];
+        if(func){ func(parsedFunction.data); }
+        else { 
+          console.log(`Unable to identify function "${parsedMessage.content}"`);
+          sendError(`Unable to identify function "${parsedMessage.content}"`);
+        }
+      break;
+      
+      default:
+        console.log("Unknown message Type")
+      break;
+    }
+      
+      
+  });
+
+  function sendData(type, content, client = socket){
+    if (client.readyState === WebSocket.OPEN) 
+      { client.send(JSON.stringify({type:type,content:content}))}; 
+  }
+
+  function broadcastData(data){
+    for (const [id, client] of userSocketConnections) 
+      { sendData(data, client); }
+  }
+
+  function sendError(error)
+  { sendData("error",error); }
+
+  function sendResponse(funct, status, data = null)
+  { sendData("response", JSON.stringify({function:funct, status:status, data:data})); } 
+
+
+
+
+  function joinGame(instanceID){    
+    //Adds player to the game instance player map
+    const game = currentGameInstances.get(instanceID);
+    if(!game) { 
+      sendResponse("joingame", "FAIL")
+      return;
+    }
+    game.addPlayer(deviceUUID);
   
-  //Gets the device UUID
-  const deviceUUID = req.body.deviceCookies;
-  if(!deviceUUID) { errors.push("Missing UUID");}
+    instanceCode = instanceID;
+    sendResponse("joingame", "SUCCESS", instanceCode)
+    console.log(`Added Player: ${deviceUUID}`)
+  }
 
-  //Returns errors if necessary
-  if(!errors) { res.send({errors:errors}); return null; } 
+  function getCurrentPlayerHand(){
+    if(!instanceCode) { sendResponse("getcurrentplayerhand", "FAIL"); return; }
+    sendResponse("getcurrentplayerhand", "SUCCESS", currentGameInstances.get(instanceCode).getPlayerHand(deviceUUID));
+  }
 
-  return {deviceUUID: deviceUUID, instanceCode:instanceCode}
-}
+  function hostGame(instanceID){
+    if(currentGameInstances.get(instanceID)) { sendResponse("hostgame","FAIL", instanceID); return;  }
+    createGameInstance(instanceID);
+    sendResponse("hostgame", "SUCCESS", instanceID)
+  }
 
-//Define any join game requests
-exp.post('/joinGame', (req, res) => {
-  const requestData = defaultAPIResponder(req,res);
-  if(!requestData) { return null; }
-  
-  //Adds player to the game instance player map
-  let game = currentGameInstances.get(requestData.instanceCode);
-  if(!game) { game = createGameInstance(requestData.instanceCode); }
-  game.addPlayer(requestData.deviceUUID);
 
-  res.send('Recieved deviceUUID');
-  console.log(`Added Player: ${requestData.deviceUUID}`)
-});
 
-//Defines requests to get the cards in the player's hand
-exp.post('/getPlayerHand', (req, res) => {
-  const requestData = defaultAPIResponder(req,res);
-  if(!requestData) { return null; }
 
-  //Sends a response with a list of references to the cards which the player has
-  res.json(currentGameInstances.get(requestData.instanceCode).getPlayerHand(requestData.deviceUUID));
-});
-
-//Start the server
-const PORT = 3001;
-exp.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on ${frontendAddress}`);
+  socket.on('close', () => {
+    userSocketConnections.delete(deviceUUID);
+    if(instanceCode) { 
+      const game = currentGameInstances.get(instanceCode);
+      if(game)
+      { 
+        if(!game.isGameActive()){
+          //Remove player, and if there are no more players in the game, remove the game
+          if(game.removePlayer(deviceUUID) <= 0)
+          { currentGameInstances.delete(instanceCode); } 
+        }
+        else{
+          //Set player as disconnected and remove game if there are no connected players
+          game.setPlayerConnection(false);
+          if(game.howManyConnectedPlayers() <= 0){
+            currentGameInstances.delete(instanceCode);
+          }
+        }
+      }
+     }
+  });
 });

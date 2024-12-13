@@ -6,6 +6,7 @@ class Player{
     #playerUUID; getPlayerUUID(){ return this.#playerUUID; }
     #playerName; getPlayerName() { return this.#playerName;}
     #hand = new Array(7).fill(null); getHand(){ return this.#hand; }
+    connected = true;
 
     constructor(playerUUID, playerName){ 
         this.#playerUUID = playerUUID; 
@@ -35,6 +36,7 @@ class Player{
 
 export class GameInstance{
     #instanceCode; getInstanceCode(){ return this.#instanceCode; }
+    #active = false; isGameActive(){ return this.#active; }
     #players = new Map();
     #whiteDeck = null
     #blackDeck = null
@@ -44,23 +46,25 @@ export class GameInstance{
         this.instanceCode = instanceCode
     }
 
-    #doesPlayerExistInGame(UUID){
+    doesPlayerExistInGame(UUID){
         if(this.#players.has(UUID)){ console.log(`Player ${UUID} currently exists in this game`); return true; }
         return false;
     }
 
     addPlayer(UUID){
-        if(this.#doesPlayerExistInGame(UUID)) { return; }
+        if(this.doesPlayerExistInGame(UUID)) { return; }
         this.#players.set(UUID, new Player(UUID));
     }
 
     removePlayer(UUID) {
-        if(!this.#doesPlayerExistInGame(UUID)) { return;}
+        if(!this.doesPlayerExistInGame(UUID)) { return;}
         this.#players.delete(UUID);
+
+        return this.#players.size;
     }
 
     getPlayerHand(UUID){
-        if(!this.#doesPlayerExistInGame(UUID)) { return; }
+        if(!this.doesPlayerExistInGame(UUID)) { return; }
         return this.#players.get(UUID).getHand();
     }
 
@@ -70,6 +74,14 @@ export class GameInstance{
         this.pack = pack;
         this.initialiseDecks();
         this.dealCards(7);
+        this.#active = true;
+    }
+
+    endGame(){
+        this.#active = false;
+        this.#players.forEach((player) => {
+            player.emptyHand();
+        });
     }
 
     initialiseDecks(){
@@ -100,8 +112,28 @@ export class GameInstance{
         }
     }
 
-    playerDrawCard(UUID){
-        if(!this.#doesPlayerExistInGame(UUID)) { return; }
-        this.#players[UUID].addCard();
+    playerDrawCard(UUIDorPlayer, deck){
+        if(!(UUIDorPlayer instanceof Player)) { 
+            if(!this.doesPlayerExistInGame(UUID)) { return; }
+            UUIDorPlayer = this.#players.get(UUID); 
+        }
+        const hand = player.getHand();
+        if (!hand.includes(null)) { return; }
+        if (deck.length <= 0) { /*NEW DECK LOADING*/ }
+        player.addCard(deck.pop());
+    }
+
+    setPlayerConnection(UUID, state){
+        if(state != true || state != false) { console.log(`Player Connection cannot be "${state}"`); return;}
+        this.#players[UUID]
+    }
+
+    //Checks how many connected players there are
+    howManyConnectedPlayers(){
+        let connectedPlayers = 0;
+        this.#players.array.forEach((player) => {
+            if(player.connected) { connectedPlayers++; }
+        });
+        return connectedPlayers;
     }
 }

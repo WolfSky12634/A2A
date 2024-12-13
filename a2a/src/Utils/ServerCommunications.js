@@ -1,14 +1,11 @@
 //Communicates with the server using fetch requests
 import { v4 as uuidv4 } from 'uuid';
+const apiAddress = '10.46.196.198:3001' //Temporary appointment of communication address
 
-export const ipaddress = 'http://192.168.1.133' //Temporary appointment of communication address
-const apiAddress = ipaddress+':3001'; //Temporary appointment of communication address
+//Function to change the current game screen
+let changeGameScreen;
 
-//Stores a list of all available server requests
-const apiRequests = {
-    joingame : '/joinGame',
-    getcurrentplayerhand : '/getPlayerHand'
-}
+const waitingForResponse = new Map();
 
 //Gets the value of a specific cookie from a string of cookies
 export function getCookieValue(cookieString, cookieName) {
@@ -26,7 +23,6 @@ export function getCookieValue(cookieString, cookieName) {
 
     return cookieValue;
 }
-
 //Creates a new UUID for the current device to store in cookies
 function createCookieUUID(){
     const date = new Date();
@@ -35,67 +31,175 @@ function createCookieUUID(){
     document.cookie = `deviceUUID=${deviceUUID}; expires=${date.toUTCString()}`;
     return deviceUUID;
 }
-
 //Checks for the device UUID, or creates a new one if one is not available
 function getOrCreateCookieUUID() {
     let deviceUUID = document.cookie?getCookieValue(document.cookie, 'deviceUUID'):null;
     if(!deviceUUID) { deviceUUID = createCookieUUID(); }
     return deviceUUID;//
 }
-
 //Creates a default data communication request standard so that the server knows which user is communicating with it
-async function defaultApiRequest(apiCall){
+async function defaultApiRequest(apiCall, data = null){
     //Detects which function is being requested of the server, to identify if any such function exists
-    const apiRequest = apiRequests[apiCall.toLowerCase()]
-    if(!apiRequest){ console.log(`No API request of ${apiCall} exists`); return;}
+    const lowerCaseApiCall = apiCall.toLowerCase()
+    if(!responseHandlers[lowerCaseApiCall]){ console.log(`No API request of ${apiCall} exists`); return;}
 
-    //Runs FETCH to communicate the function with the server
-    try {
-        const response = await fetch(apiAddress+apiRequest, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ instanceCode: getCookieValue(document.cookie,"instanceCode"), deviceCookies: getCookieValue(document.cookie, "deviceUUID")})
-        });
-        return response;
+    communicateWithServer("function", JSON.stringify({function: lowerCaseApiCall, data:data}));
+}
+//Runs communication of the function with the server
+function communicateWithServer(type,content){
+    if(socket && socket.readyState === WebSocket.OPEN){
+        socket.send(JSON.stringify({type: type, content:content}));
     }
-    catch (error)
-    { console.error(`Fetch error for ${apiRequest}: `, error)}
-
-    return null;
+    else { console.error("Not connected to WebSocket"); }
 }
 
-//Runs an initial communication connection between the device and the game instance
-export function initialCommunications(instanceCode) {
+//Adds functions to call when response has come through
+function newResponseWaiters(functionName, responseFunction){
+    let responseWaiters = waitingForResponse.get(functionName);
+    if(responseWaiters) { responseWaiters.push(responseFunction); }
+    else { responseWaiters = [responseFunction]}
+    waitingForResponse.set(functionName, responseWaiters);
+}
+
+//Runs a response to all of the response waiters
+function respondToResponseWaiters(functionName, responseData){
+    const responseFunctions = waitingForResponse.get(functionName);
+    if(!responseFunctions) { return; }
+    responseFunctions.forEach((func) => { if(func != null) { func(responseData); }});
+}
+
+
+
+
+
+
+//Runs an initial communication connection between the device and the server
+export function initialCommunications(changeCurrentScreen) {    
+    changeGameScreen = changeCurrentScreen;
     getOrCreateCookieUUID();
-    if(joinGame(instanceCode)){ return true; }
-    return false;
+    connectWebSocket();
 }
 
 //Runs the Join Game function to the server 
-function joinGame(instanceCode) {
+export function joinGame(instanceCode, responseFunction) {
     console.log("Joining " + instanceCode); 
 
-    //Stores the game instance code in the device cookies
-    const date = new Date();
-    date.setUTCDate(date.getUTCDate() + 2);
-    document.cookie = `instanceCode=${instanceCode}; expires=${date.toUTCString()}`;
+    defaultApiRequest("joingame", instanceCode); 
 
-    const response = defaultApiRequest("JoinGame"); 
-    if(!response.ok) { document.cookie = "instanceCode=; expires=Sat, 01 Jan 2000 00:00:00 UTC"; return false; }
-    return true;
+    newResponseWaiters("joingame", responseFunction);
 }
 
-//Checks if the user curerntly exists in the propsed game instance
-function doesUserExistInGame(instanceCode){
+function joinGameResponse(responseData){
+    const success = responseData.status === "SUCCESS"?true:false;
 
+    if(success) { 
+        const date = new Date();
+        date.setUTCDate(date.getUTCDate() + 2);
+        document.cookie = `instanceCode=${responseData.data}; expires=${date.toUTCString()}`;
+    }
+    else { document.cookie = `instanceCode=; expires=Sat, 01 Jan 2000 00:00:00` }
+
+    changeGameScreen(success?"WaitingRoom":"MainMenu");
+    respondToResponseWaiters("joingame", success);
 }
+
+
+/*function leaveGame(instanceCode){
+    
+}*/
+
+
+export function hostGame(instanceCode, responseFunction){
+    defaultApiRequest("hostgame", instanceCode)
+    newResponseWaiters("hostgame", responseFunction)
+}
+
+function hostGameResponse(responseData){
+    const success = responseData.status === "SUCCESS"?true:false;
+    if(success) { joinGame(responseData.data); }
+
+    respondToResponseWaiters("hostgame", success);
+}
+
 
 //Runs the Get Current Player Hand function to the server
-export async function getCurrentPlayerHand(){
-    const response = await defaultApiRequest("getCurrentPlayerHand")
-    if (!response.ok) { throw new Error(`HTTP error - Status: ${response.status}`); }
-    
-    const data = await response.json();
-    console.log(data);
-    return data;
+export async function getCurrentPlayerHand(responseFunction){
+    defaultApiRequest("getcurrentplayerhand");
+    newResponseWaiters("getcurrentplayerhand", responseFunction);
+}
+
+function getCurrentPlayerHandResponse(responseData){
+    if(!Array.isArray(responseData.data)) { 
+        console.log("Player Hand appears to be something other than an array"); 
+        respondToResponseWaiters("getcurrentplayerhand", null)
+        return; 
+    }
+
+    respondToResponseWaiters("getcurrentplayerhand", responseData.data);
+}
+
+
+
+
+
+
+
+
+
+const responseHandlers = {
+    joingame: (responseData) => joinGameResponse(responseData),
+    getcurrentplayerhand: (responseData) => getCurrentPlayerHandResponse(responseData),
+    hostgame: (responseData) => hostGameResponse(responseData)
+}
+
+let socket;
+
+function connectWebSocket(functionsToRunOnOpen){
+    socket = new WebSocket(`ws://${apiAddress}`);
+
+    // Connection established
+    socket.onopen = () => {
+        if(Array.isArray(functionsToRunOnOpen)) { functionsToRunOnOpen.forEach((func) => { func(); }) }
+    };
+
+    //Receive messages
+    socket.onmessage = (event) => {
+        let parsedMessage;
+        try { parsedMessage = JSON.parse(event.data); }
+        catch{ parsedMessage = null; }
+        
+        if(!parsedMessage) { console.log(event.data); return; }
+        switch(parsedMessage.type){
+            case "response":
+                const parsedContent = JSON.parse(parsedMessage.content);
+                const func = responseHandlers[parsedContent.function];
+                if(func) { func(parsedContent); }
+                else { 
+                    console.log(`Unable to identify function "${parsedMessage.content}"`);
+                    //LOG ERROR TO SERVER
+                  }
+            break;
+
+            default:
+                console.log("Unknown message type")
+            break;
+        }
+
+
+    };
+
+    //Handle being unable to access the server
+    socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+
+    //Handle disconnection
+    socket.onclose = (event) => {
+        if (event.code !== 1000) { //1000 == normal closure
+            console.log('Connection lost, trying to reconnect...');
+            setTimeout(() => {
+                connectWebSocket(); //Function to reconnect
+            }, 3000); //Wait 3 seconds before reconnecting
+        }
+    };
 }

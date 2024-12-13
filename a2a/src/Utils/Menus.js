@@ -5,28 +5,34 @@ import {initialCommunications} from './ServerCommunications.js';
 import { Spinners } from './VisualEffects.js';
 
 //Renders the Main Menu visuals
-function MainMenu({changeCurrentScreen}) {
+function MainMenu({changeCurrentScreen, serverCommunications}) {
     const [instanceCode, setInstanceCode] = useState('');
     const [errorEnter, setErrorEnter] = useState(false)
     const [errorConnect, setErrorConnect] = useState(false)
 
+    //Joins the game if the Game Instance Code is valid, or creates a new game if it is valid, and the instance code is not being used currently
+    const hostGame = () => {
+        if(instanceCode.length < 4 || !Number.isInteger(Number(instanceCode))){ setErrorConnect(false); setErrorEnter(true); return; }
+        serverCommunications.hostGame(instanceCode, () => {setErrorEnter(false); setErrorConnect(instanceCode);});
+    };
+
 
     //Joins the game if the Game Instance Code is valid, or creates a new game if it is valid, and the instance code is not being used currently
     const joinGame = () => {
-        console.log()
         if(instanceCode.length < 4 || !Number.isInteger(Number(instanceCode))){ setErrorConnect(false); setErrorEnter(true); return; }
-        if(!initialCommunications(instanceCode)) { setErrorEnter(false); setErrorConnect(instanceCode); return; }
-        changeCurrentScreen("WaitingRoom");
+        serverCommunications.joinGame(instanceCode, () => {setErrorEnter(false); setErrorConnect(instanceCode);});
     };
+
     
     //Changes the text in the input text box
     const handleInputChange = (event) => { setInstanceCode(event.target.value); };
 
     return(
         <div className="menu">
+            <button className="menu-button" onClick={hostGame}>Host</button>
             <button className="menu-button" onClick={joinGame}>Play</button>
             <input type="text" value={instanceCode} onChange={handleInputChange} placeholder="Enter Game Code:" className="input-field"/>
-            {(errorEnter || errorConnect) && <span className='error-text'>{errorEnter?"GameCode must be at least 4 numerical digits":`Unable to connect to ${errorConnect}`}</span>}
+            {(errorEnter || errorConnect) && <span className='error-text'>{errorEnter?"GameCode must be at least 4 numerical digits":`Unable to use GameCode ${errorConnect}`}</span>}
         </div>
     )
 
