@@ -57,6 +57,21 @@
     outline: none;
 }
 
+.input-error {
+    width: 300px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 2px solid #d9534f;
+    font-size: 1rem;
+    margin: 10px 0;
+    transition: border-color 0.3s ease;
+}
+
+.input-error:focus {
+  border-color: #be4a46;
+  outline: none;
+}
+
 .error-text {
     color: #d9534f; /* Red colour for the error message */
     background-color: #f2dede; /* Light red background */

@@ -43,7 +43,7 @@ export class GameInstance{
     pack = defaultPack;
 
     constructor(instanceCode){
-        this.instanceCode = instanceCode
+        this.#instanceCode = instanceCode
     }
 
     doesPlayerExistInGame(UUID){
@@ -51,9 +51,9 @@ export class GameInstance{
         return false;
     }
 
-    addPlayer(UUID){
+    addPlayer(UUID, playerName){
         if(this.doesPlayerExistInGame(UUID)) { return; }
-        this.#players.set(UUID, new Player(UUID));
+        this.#players.set(UUID, new Player(UUID, playerName));
     }
 
     removePlayer(UUID) {
@@ -121,6 +121,14 @@ export class GameInstance{
         if (!hand.includes(null)) { return; }
         if (deck.length <= 0) { /*NEW DECK LOADING*/ }
         player.addCard(deck.pop());
+    }
+
+    getPlayerName(UUID) { return this.#players.get(UUID).getPlayerName(); }
+
+    getPlayerNames() { 
+        let playerNames = []
+        this.#players.forEach((player) => { playerNames.push(player.getPlayerName()); })
+        return playerNames;
     }
 
     setPlayerConnection(UUID, state){

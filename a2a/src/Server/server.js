@@ -22,6 +22,12 @@ function removeGameInstance(gameInstanceID){
   currentGameInstances.delete(gameInstanceID);
 }
 
+
+
+
+
+
+
 const server = new WebSocket.Server({ host: '0.0.0.0', port: 3001 });
 
 server.on('connection', (socket, req) => {
@@ -37,47 +43,66 @@ server.on('connection', (socket, req) => {
 
   userSocketConnections.set(deviceUUID,socket);
 
-  const instanceID = cookie.parse(req.headers.cookie || '').instanceCode;
-  if(instanceID) { joinGame(instanceID); }  
+  const gameInstanceData = cookie.parse(req.headers.cookie || '').gameInstanceData;
+  if(gameInstanceData) { joinGame(JSON.parse(gameInstanceData)); }   ////////////////////CHANGE THIS TO MAKE IT WORK PROPERLY WITH DATA OF PLAYER ALREADY EXISTING IN GAME AND MAKE SURE TO CHECK IT DOES EXIST
+
+  
 
 
 
   const functionHandlers = {
-    joingame: (instanceID) => joinGame(instanceID),
+    joingame: (data) => joinGame(data),
     getcurrentplayerhand: () => getCurrentPlayerHand(),
-    hostgame: (instanceID) => hostGame(instanceID)
+    hostgame: (data) => hostGame(data)
   }
 
   socket.on('message', (message) => {
 
     const parsedMessage = JSON.parse(message);
+    if(!parsedMessage){ console.log(`ERROR: ${message}`); return; }
+    let parsedContent;
+    try{ parsedContent = JSON.parse(parsedMessage.content); }
+    catch{ parsedContent = null; }
+    let func;
+
     switch(parsedMessage.type){
       case "function":
-        const parsedFunction = JSON.parse(parsedMessage.content);
-        const func = functionHandlers[parsedFunction.function];
-        if(func){ func(parsedFunction.data); }
-        else { 
-          console.log(`Unable to identify function "${parsedMessage.content}"`);
-          sendError(`Unable to identify function "${parsedMessage.content}"`);
-        }
+        func = functionHandlers[parsedContent.function];
       break;
+
+      case "ping":
+        onPing();
+      return;
       
       default:
         console.log("Unknown message Type")
       break;
     }
+
+    const parsedData = JSON.parse(parsedContent.data) || null;
+
+    if(func){ func(parsedData); }
+    else { 
+      console.log(`Unable to identify function "${parsedMessage.content}"`);
+      sendError(`Unable to identify function "${parsedMessage.content}"`);
+    }
       
       
   });
 
+
+
+
+
+  
   function sendData(type, content, client = socket){
     if (client.readyState === WebSocket.OPEN) 
       { client.send(JSON.stringify({type:type,content:content}))}; 
   }
 
-  function broadcastData(data){
+  function broadcastData(type, data){
     for (const [id, client] of userSocketConnections) 
-      { sendData(data, client); }
+      { sendData(type, data, client); }
   }
 
   function sendError(error)
@@ -89,18 +114,31 @@ server.on('connection', (socket, req) => {
 
 
 
-  function joinGame(instanceID){    
+  function hostGame(data){
+    if(currentGameInstances.get(data.instanceCode)) { sendResponse("hostgame","FAIL", data.instanceCode); return;  }
+    createGameInstance(data.instanceCode);
+    sendResponse("hostgame", "SUCCESS", JSON.stringify(data))
+    joinGame(data)
+  }
+
+  function joinGame(data){   
     //Adds player to the game instance player map
-    const game = currentGameInstances.get(instanceID);
-    if(!game) { 
-      sendResponse("joingame", "FAIL")
+    const game = currentGameInstances.get(data.instanceCode);
+    if(!game || game.isGameActive()) { 
+      sendResponse("joingame", "FAIL", (!game)?"Game Instance does not exist":"Game is currently active")
       return;
     }
-    game.addPlayer(deviceUUID);
-  
-    instanceCode = instanceID;
-    sendResponse("joingame", "SUCCESS", instanceCode)
-    console.log(`Added Player: ${deviceUUID}`)
+
+    instanceCode = data.instanceCode
+    game.addPlayer(deviceUUID, data.playerName);  
+    sendResponse("joingame", "SUCCESS", JSON.stringify(data));
+    broadcastData("function", JSON.stringify({function:"playerNames", data:game.getPlayerNames() }));
+  }
+
+  function leaveGame(){
+
+
+    broadcastData("function", JSON.stringify({function:"playerNames", data:game.getPlayerNames() }));
   }
 
   function getCurrentPlayerHand(){
@@ -108,14 +146,19 @@ server.on('connection', (socket, req) => {
     sendResponse("getcurrentplayerhand", "SUCCESS", currentGameInstances.get(instanceCode).getPlayerHand(deviceUUID));
   }
 
-  function hostGame(instanceID){
-    if(currentGameInstances.get(instanceID)) { sendResponse("hostgame","FAIL", instanceID); return;  }
-    createGameInstance(instanceID);
-    sendResponse("hostgame", "SUCCESS", instanceID)
+
+
+
+
+
+  // Listen for ping
+  function onPing() {
+    // Reset disconnect timeout when ping is received
+    clearTimeout(socket.disconnectTimeout);
+    // Disconnect client if no pong after 10 seconds
+    socket.disconnectTimeout = setTimeout(() => { console.log(`lost ${deviceUUID}`); socket.close(); }, 5000);
+    console.log(`ping from ${deviceUUID}`)
   }
-
-
-
 
   socket.on('close', () => {
     userSocketConnections.delete(deviceUUID);
@@ -124,16 +167,16 @@ server.on('connection', (socket, req) => {
       if(game)
       { 
         if(!game.isGameActive()){
-          //Remove player, and if there are no more players in the game, remove the game
+          //Remove player, and if there are no more players in the game, remove the game          
           if(game.removePlayer(deviceUUID) <= 0)
-          { currentGameInstances.delete(instanceCode); } 
+          { removeGameInstance(instanceCode); return; } 
+          broadcastData("response", JSON.stringify({function:"playerNames", data:game.getPlayerNames() }));
         }
         else{
           //Set player as disconnected and remove game if there are no connected players
           game.setPlayerConnection(false);
-          if(game.howManyConnectedPlayers() <= 0){
-            currentGameInstances.delete(instanceCode);
-          }
+          if(game.howManyConnectedPlayers() <= 0)
+          { removeGameInstance(instanceCode); return; }
         }
       }
      }
